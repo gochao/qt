@@ -1469,70 +1469,94 @@ bool CustomWidget::event(QEvent *event)
 
 ---
 ## 绘制系统
-Qt的绘制系统主要包含三个类QPainter QPainterDevice QPaintEngine  
-QPainter用于执行绘图操作  
-QPainterDevice是绘制空间,如纸,屏幕等  
-QPaintEngine是一个接口,将QPainter和QPainterDevice匹配起来,或者说将QPainter的指令翻译为QPainterDevice能够识别的指令  
 
-```
+Qt的绘制系统主要包含三个类QPainter QPainterDevice QPaintEngine  
+
+- QPainter用于执行绘图操作  
+- QPainterDevice是绘制空间,如纸,屏幕等  
+- QPaintEngine是一个接口,将QPainter和QPainterDevice匹配起来,或者说将QPainter的指令翻译为QPainterDevice能够识别的指令  
+
+```cpp
 //接受QPainterDevice参数,创建画笔 理解为在当前组件上(this)画图
 QPainter painter(this);
 painter.drawLine(80, 100, 650, 500);
+
 //更换画笔颜色
 painter.setPen(Qt::red);
 painter.drawRect(10, 10, 100, 400);
+
 //更换颜色 宽带
 painter.setPen(QPen(Qt::green, 5));
+
 //设置画刷
 painter.setBrush(Qt::blue);
 painter.drawEllipse(50, 150, 400, 200);
 ```  
 
-# 画刷和画笔  
-画刷QBrush用于填充,画笔QPen用于画轮廓线  
+## 画刷和画笔  
 
-## QBrush
+- 画刷QBrush用于填充  
+- 画笔QPen用于画轮廓线  
+
+### QBrush
+
 定义QPainter的填充模式,具有样式 颜色 纹理 渐变等属性  
-1. 样式(style):使用Qt::BrushStyle枚举,默认为Qt::NoBrush  
-2. 颜色(color):使用Qt::GlobalColor,也可以为QColor对象  
-3. 渐变(gradient):能够使用渐变取决于当前的样式是否支持  
-3.1 只有在样式为Qt::LinearGradientPattern、Qt::RadialGradientPattern或Qt::ConicalGradientPattern之一时才有效  
-3.2 渐变可以由QGradient对象表示  
-3.3 Qt 提供了三种渐变：QLinearGradient、QConicalGradient和QRadialGradient，均为QGradient的子类
-4. 纹理(texture):只有样式为Qt::TexturePattern时才可用纹理,texture()定义纹理.如果调用setTexture()时,会自动修改样式
-```
+- 样式(style):使用Qt::BrushStyle枚举,共有19种样式，默认为Qt::NoBrush  
+- 颜色(color):可以用预定义的颜色常量Qt::GlobalColor,也可以为QColor对象  
+- 渐变(gradient):能够使用渐变取决于当前的样式是否支持  
+  - 只有在样式为Qt::LinearGradientPattern、Qt::RadialGradientPattern或Qt::ConicalGradientPattern之一时才有效  
+  - 渐变可以由QGradient对象表示  
+  - Qt 提供了三种渐变对象：QLinearGradient、QConicalGradient和QRadialGradient，均为QGradient的子类
+- 纹理(texture):只有样式为Qt::TexturePattern时才可用纹理,texture()定义纹理.如果调用setTexture()时,会自动修改样式
+
+```cpp
+//创建一个QRadialGradient渐变对象
 QRadialGradient gradient(50, 50, 50, 50, 50);
+
+//设置渐变对象的参数
 gradient.setColorAt(0, QColor::fromRgbF(0, 1, 0, 1));
 gradient.setColorAt(1, QColor::fromRgbF(0, 0, 0, 0));
 
+//将这个渐变对象添加到画刷中
 QBrush brush(gradient);
 ```
 
 
-## QPen
-定义了如何画线  
-属性: 样式style 宽度width 画刷brush 笔帽样式capStyle 连接样式joinStyle  
-默认属性为 黑色 0像素 方形笔帽 斜面型连接
-```
-QPainter painter(this);
-QPen pen;
+### QPen
 
+定义了如何画线或者轮廓线  
+
+- 属性: 
+  - 样式style：直线，点线，点划线(Qt::SolidLine Qt::DashLine Qt::DotLine)等  
+  - 宽度width：线条的宽度  
+  - 画刷brush:填充画笔绘制的线条  
+  - 笔帽样式capStyle:线的末端样式(Qt::SquareCap Qt::FlatCao Qt::RoundCap)  
+  - 连接样式joinStyle：两条线衔接处的图形样式(Qt::BevelJoin Qt::MiterJoin Qt::RoundJoin)  
+- 默认属性为 黑色 0像素 方形笔帽 斜面型连接  
+
+```cpp
+QPainter painter(this);
+
+//设置画笔参数
+QPen pen;
 pen.setStyle(Qt::DashDotLine);
 pen.setWidth(3);
 pen.setBrush(Qt::green);
 pen.setCapStyle(Qt::RoundCap);
 pen.setJoinStyle(Qt::RoundJoin);
 
+//也可以在创建画笔时设定参数
+//QPen pen(Qt::green, 3, Qt::DashDotLine, Qt::RoundCap, Qt::RoundJoin);
+
+//给painter绑定画笔
 painter.setPen(pen);
 ```
-1. 样式style:实线Qt::SolidLine Qt::DashLine Qt::DotLine
-2. 笔帽capStyle:定义了线的首尾两端点的样式,Qt::SquareCap Qt::FlatCao Qt::RoundCap
-3. 连接线joinStyle:线段在转弯时是如何连接的,Qt::BevelJoin Qt::MiterJoin Qt::RoundJoin  
 
+## 反走样
 
-# 反走样
 即消除在光栅图形显示器上的锯齿  
-```
+
+```cpp
 QPainter painter(this);
 painter.setPen(QPen(Qt::black, 5, Qt::DashDotLine, Qt::RoundCap));
 painter.setBrush(Qt::yellow);
@@ -1547,12 +1571,14 @@ painter.drawEllipse(300, 150, 200, 150);
 
 反走样由于效率问题,一般不默认开启
 
-# 渐变  
-从一种颜色到另一种颜色逐渐过渡  
-在QBrush中设置,Qt提供了三种:线性(QLinearGradient) 辐射(QRadialGradient) 角度(QConicalGradient)  
+## 渐变
 
-## 线性渐变举例
-```
+- 从一种颜色到另一种颜色逐渐过渡  
+- 在QBrush中设置,Qt提供了三种:线性(QLinearGradient) 辐射(QRadialGradient) 角度(QConicalGradient)  
+
+### 线性渐变举例
+
+```cpp
 QPainter painter(this);
 
 //打开反走样
@@ -1571,8 +1597,11 @@ painter.setBrush(QBrush(linearGradient));
 painter.drawEllipse(50, 50, 200, 150);
 ```
 
-## 角度渐变举例:渐变圆盘
-```
+### 角度渐变举例
+
+渐变圆盘
+
+```cpp
 //设置绘制
 QPainter painter(this);
 painter.setRenderHint(QPainter::Antialiasing);
@@ -1592,15 +1621,17 @@ conicalGradient.setColorAt(240.0/360.0, Qt::blue);
 conicalGradient.setColorAt(300.0/360.0, Qt::magenta);
 conicalGradient.setColorAt(1.0, Qt::red);
 
-//修改原点为r,r 则此时左上点的坐标为(-r, -r)
+//修改原点为(r,r) 则此时左上点的旧原点坐标坐标为(-r, r)
 painter.translate(r, r);
 
 QBrush brush(conicalGradient);
 painter.setPen(Qt::NoPen);
 painter.setBrush(brush);
+
 //此时原点已变
 painter.drawEllipse(QPoint(0, 0), r, r);
 ```
 
 
-# 坐标系统
+## 坐标系统
+
