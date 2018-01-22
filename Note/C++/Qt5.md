@@ -1635,3 +1635,193 @@ painter.drawEllipse(QPoint(0, 0), r, r);
 
 ## 坐标系统
 
+- 逻辑坐标系统由QPainter控制  
+- 设备坐标则是在QPaintDevice的图形输出对象上，坐标原点(0,0)默认在左上角，单位是像素(显示器)或点(打印机，1//72英寸)  
+- 逻辑坐标与物理坐标的映射由QPainter的变换矩阵(transformation matrix)、视口(viewport)、窗口(window)完成  
+
+### 像素
+
+像素是一个一个的小方格，例如左上角点的像素(0,0)实际上是坐标(0,0) (0,1) (1,1) (1,0)围成的小方格  
+换句话说，像素是逻辑坐标右下方的小方格  
+因此在使用QRect时，函数`QRect::right()=left() + width() - 1`而`QRect::bottom() = top() + height() - 1`
+返回的坐标值与真实坐标值差一  
+
+### QPainter状态
+
+可以临时保存当前的画图状态并在之后恢复
+- `save()`函数可以保存当下的状态如坐标系原点，画笔的颜色、粗细，画刷等  
+- `restore()`函数可以恢复`save()`保存的结果  
+- 这两个函数通过**栈**来实现，必须成对出现  
+
+### 变换示例
+
+- 平移translate  
+- 旋转rotate  
+- 缩放scale  
+- 扭曲shear  
+
+```cpp
+QPainter painter(this);
+
+//画矩形
+painter.fillRect(10, 10, 50, 100, Qt::red);
+
+painter.save();
+painter.translate(100, 0);//坐标系原点右移100
+painter.fillRect(10, 10, 50, 100, Qt::yellow);
+painter.restore();
+
+painter.save();
+painter.translate(300, 0);
+painter.rotate(30);//顺时针旋转30度
+painter.fillRect(10, 10, 50, 100, Qt::green);
+painter.restore();
+
+painter.save();
+painter.translate(400, 0);
+painter.scale(2,3);//x坐标单位放大2倍，y坐标放大3倍
+painter.fillRect(10, 10, 50, 100, Qt::blue);
+painter.restore();
+
+painter.save();
+painter.translate(600, 0);
+painter.shear(0,1);//纵向扭曲1倍
+painter.fillRect(10, 10, 50, 100, Qt::cyan);
+painter.restore();
+```
+
+### 逻辑坐标 设备坐标
+
+- 提供给QPainter绘制的坐标都是逻辑坐标
+- 要在设备上绘制就要提供设备的物理坐标
+- qt使用viewport-window将逻辑坐标转换为物理坐标，方法是在逻辑坐标和物理坐标间加上一层窗口坐标  
+
+逻辑坐标：窗口 ---> 视口：物理坐标  
+
+#### 窗口（逻辑）
+
+窗口代表逻辑处理的区域  
+setWindow()设置窗口大小  
+
+实际大小为200*200的窗口，默认窗口大小为200×200，视口大小也为200×200  
+在(0,0)位置画一个100×100的矩形，则占用左上角1/4的大小  
+执行setWindow(-50, -50, 100, 100)；  
+左上角的物理坐标还是(0, 0)但是逻辑坐标为(-50, -50)  
+右下角的物理坐标还是(200, 200)但是逻辑坐标为(50, 50) 
+
+#### 视口（物理）
+
+视口代表实际的绘图区域  
+实际大小为200*200的窗口，默认窗口大小为200×200，视口大小也为200×200  
+执行setViewPort(0, 0, 100, 100);  
+则绘图区域变为原来的1/4  
+使用逻辑坐标绘制矩形painter.drawRect(0, 0, 100, 100)；矩形为原图的1/16  
+
+#### 防止变形
+
+由于窗口和视口会不一致，因此为了防止图形在坐标转换时变形需要是两者的**宽高比**一致  
+
+```cpp
+int side = qMin(width(), height());
+int x = (width() - side/2);
+int y = (height() - side/2);
+painter.setViewport(x, y, side, side);//逻辑(0,0)映射为(x,y)，逻辑的width()映射为物理的side
+```
+
+## 绘制设备
+
+QPainter可以在任何的QPaintDevice的子类上进行绘制  
+子类包含：  
+- QWidget：所有控件的父类  
+- QImage  
+- QPixmap  
+- QGLFramebufferObject  
+- QPicture  
+- QPrinter  
+
+QPainter在QWidget中只能在paintEvent()中使用，而其他QPaintDevice没有这个限制
+
+### QPixmap
+
+可以使用QPainter画图，也可以接受一个文件路径显示图像文件(png jepg)  
+使用QPainter::drawPixmap()函数可以把文件绘制到QLabel QPushButton或其他设备上  
+QPixmap针对屏幕进行了特殊的优化  
+提供了“隐式数据传递”不需要显式地传递指针，会默认使用指针  
+可以使用grabWidget()和grabWindow()将QPixmap的图像绘制到目标上  
+
+
+### QBitmap
+
+是QPixmap的子类，但是色深为1，即只有黑白色，占用空间小  
+适合光标 笔刷等图像  
+可以使用QPixmap::isQBitmap()函数判断  
+
+### QImage
+
+可以进行像素级的访问操作  
+
+```cpp
+QImage image(3, 3, QImage::Format_RGB32);
+QRgb value;
+
+value = QRgb(189, 149, 39);
+image.setPixel(1, 1, value);//设置(1,1)像素的rgb值
+```
+
+### QPicture
+
+与平台无关，可以使用在svg pdf ps 打印机或屏幕等多种设备上  
+可以记录QPainter命令  
+
+```cpp
+QPicture picture;
+QPainter painter;
+
+painter.begin(&picture);//在picture上绘制
+painter.drawEllipse(10, 20, 80, 70);
+painter.end();//绘制完成
+
+picture.save("drawing.pic");//保存
+```
+
+```cpp
+QPicture picture;
+QPainter painter;
+
+picture.load("drawing.pic");
+painter.begin(&myImage);               
+painter.drawPicture(0, 0, picture);//绘制picture
+painter.end(); 
+```
+
+## Graphics View Framework
+
+提供了一种借口来管理大量的自定义2D图像元素并交互  
+还提供了将这些元素进行可视化显示的观察组件，支持缩放与旋转  
+
+该框架还提供了一套完整的**事件体系**与元素交互，支持键盘 鼠标事件等  
+
+它是一个基于元素（item）的MV架构，分为三个部分：元素item 场景scene 和视图view  
+首先创建一个场景，然后创建一个直线对象和一个多边形对象，在使用场景的add函数将对象添加到场景中，最后通过视图来观察  
+
+
+### MV架构
+
+M:model 模型，添加的各种对象  
+V:view 视图，观察对象的视口，一个模型可以从多个视图不同角度观察  
+
+QGraphicsScene是场景，允许我们添加图形，相当于整个世界  
+QGraphView是视口，相当于照相机的取景框，可以是全景也可以是场景的一部分  
+QGraphiceItem是图形元素  
+
+```cpp
+QGraphicsScene scene;
+scene.addLine(0, 0, 150, 150);
+
+QGraphiceView view(&scene);
+view.setWindowTitle("viewTitle");
+view.resize(500, 500);
+view.show();
+```
+
+## 贪吃蛇
