@@ -1824,4 +1824,276 @@ view.resize(500, 500);
 view.show();
 ```
 
+---
 ## 贪吃蛇
+
+---
+## 文件
+
+文件操作类继承于一个父类QIODevice  
+
+### QIODevice
+
+所有IO设备类的父类，提供字节块的通用操作和接口  
+
+子类有：  
+- QBuffer读写QByteArray  
+- QProcess运行外部程序，处理进程间的通讯  
+- QFileDevice文件类的通用操作  
+  - QFile访问本地文件或嵌入资源  
+    - QTemporaryFile创建和访问本地的临时文件  
+- QAbstractSocket所有套接字的父类  
+  - QTcpSocket TCP协议  
+    - QSslSocket 
+  - QUdpSocket UDP报文  
+
+#### 顺序访问
+
+数据只能访问一遍，从第一个字节开始到最后  
+不能返回读上一个字节  
+- QProcess  
+- QTcpSocket  
+- QUdpSocket  
+- QSslSocket  
+
+#### 随机访问
+
+可以访问**任意位置任意次数**  
+可以使用`QIODevice::seek()`来重新定位文件访问指针  
+
+### QFile
+
+提供了从本地文件中读取和写入数据的能力  
+对文件的公共操作放在了**QFileDevice类**中  
+
+构造参数常为文件路径，也可以使用`setFileName()`来修改  
+路径使用正斜杠`/`分割，在不同系统上会自动转换如`C:/Windows`在Windows平台上同样可以使用  
+
+- QFile提供了文件操作如打开，关闭，刷新等  
+- 数据读写使用QDataStream或QTextStream  
+- 数据读写还可以使用QIODevice的read() readLine() readAll() write()等函数  
+- 文件本身的信息如文件名，目录名等是通过QFileInfo获取  
+
+```cpp
+//创建文件对象，QDir::currentPath()可以获得执行路径
+QFile file("in.txt");
+
+//打开文件，只读 + 文本
+if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+{
+    qDebug() << "open failed";
+}
+else
+{
+    while (!file.atEnd())
+    {
+        qDebug << file.readLine();
+    }
+}
+
+
+QFileInfo info(file);
+
+qDebug() << info.isDir();
+qDebug() << info.isExecutable();
+qDebug() << info.baseName();//文件名
+qDebug() << info.completeBaseName();
+qDebug() << info.suffix();//后缀名
+qDebug() << info.completeSuffix();
+```
+
+---
+## QDataStream 二进制流读写
+
+### 二进制流
+
+数据流是一种二进制流，它不依赖于操作系统  CPU 或者字节顺序等等  
+
+写入：
+
+```cpp
+QFile file("file.dat");
+
+if(file.open(QIODevice::WriteOnly))
+{
+    QDataStream out(&file);
+    
+    out << QString("the answer is");
+    out << (qint32)42;//使用qint32是为了保证在不同平台和编译器上都有一样的行为
+
+    file.flush();//数据只有在文件关闭时才会写入，flush可以在不关闭的情况下写入文件
+    file.close();
+}
+```
+
+读取：
+
+```cpp
+QFile file("file.dat");
+
+if(file.open(QIODevice::ReadOnly))
+{
+    QDataStream in(&file);
+    QString str;
+    qint32 a;
+
+    //数据的读取顺序必须按照写入的顺序来，否则会出异常甚至崩溃
+    in >> str >> a;
+
+    file.close();
+}
+```
+
+
+### 魔术数字和版本
+
+因为二进制读取顺序要和写入顺序完全一致，因此不同版本保存的文件顺序若有差异则会难以处理  
+必须使用一种机制保证不同版本之间的一致性  
+
+魔术数字就是二进制输出常用的技术  
+魔术数字写在文件开头，象征一个特征码，在读取时先检查这个特征码，如果与预先设置的不同就停止读取  
+一般是32位无符号整型数字如`(quint32)0xA0B0C0D0`  
+
+
+魔术数字只能判断该文件是否是合法的可读文件，为了解决版本之间的差异还要加版本号  
+
+写入：  
+
+```cpp
+QFile file("file.dat");
+file.open(QIODevice::WriteOnly);
+
+QDataStream out(&file);
+ 
+// 写入魔术数字和版本
+out << (quint32)0xA0B0C0D0;
+out << (qint32)123; 
+out.setVersion(QDataStream::Qt_4_0);
+ 
+// 写入数据
+out << lots_of_interesting_data;
+```
+
+读取：
+```cpp
+QFile file("file.dat");
+file.open(QIODevice::ReadOnly);
+QDataStream in(&file);
+
+// 检查魔术数字
+quint32 magic;
+in >> magic;
+if (magic != 0xA0B0C0D0) 
+{
+    return BAD_FILE_FORMAT;
+}
+
+// 检查版本
+qint32 version;
+in >> version;
+
+//排除错误的版本号，正确的号[100, 123]
+if (version < 100) 
+{
+    return BAD_FILE_TOO_OLD;
+}
+
+if (version > 123) 
+{
+    return BAD_FILE_TOO_NEW;
+}
+
+//[100, 110]使用Qt_3_2读取
+if (version <= 110) 
+{
+    in.setVersion(QDataStream::Qt_3_2);
+} 
+else //(110,123]用Qt_4_0读取
+{
+    in.setVersion(QDataStream::Qt_4_0);
+}
+
+// 读取数据
+in >> lots_of_interesting_data;
+if (version >= 120) {
+    in >> data_new_in_version_1_2;
+}
+in >> other_interesting_data;
+```
+
+
+### 流的游标
+
+```cpp
+QFile file("file.dat");
+file.open(QIODevice::ReadWrite);
+
+QDataStream stream(&file);
+QString str = "the answer is 42";
+QString strout;
+
+stream << str;
+file.flush();//此时游标在文件末尾
+
+
+stream.device()->seek(0);//设置游标到文件开头
+stream >> strout;
+```
+
+---
+## QTextStream 文本文件读写
+
+QTextStream可以操纵文本文件  
+XML HTML虽然也是文本文件可以有QTextStream生成，但是Qt有更方便的类处理它们  
+
+QTextStream会自动将Unicode编码和换行符自动与操作系统进行匹配  
+其以16位的QChar作为基础的数据存储单位  
+
+```cpp
+QFile data("file.txt");
+
+if (data.open(QFile::WriteOnly | QIODevice::Truncate)) 
+{
+    QTextStream out(&data);
+    out << "The answer is " << 42;
+}
+```
+
+### 打开模式
+
+枚举值 | 描述
+- | -
+QIODevice::NotOpen | 未打开
+QIODevice::ReadOnly | 只读
+QIODevice::WriteOnly | 只写
+QIODevice::ReadWrite | 读写
+QIODevice::Append | 追加至末尾
+QIODevice::Truncate | 重写 <br>写入时清除旧数据 <br>游标位于开头
+QIODevice::Text | 读取：换行符-> \n <br>写入：换行符->本地格式（如\r\n)
+QIODevice::Unbuffered | 忽略缓存
+
+
+### 编码
+
+文本文件在读取的时候，通常会一次读一行`readLine()`或读取全部`readAll()`  
+之后再对读取的QString对象处理  
+
+默认编码是Unicode如果要使用另外的可以`stream.setCodec("UTF-8")`  
+
+```cpp
+out << bin << 1234;//使用2进制输出
+
+//输出带有前缀 全部字母大写的 十六进制（0XBC614E）
+out << showbase << uppercasedigits << hex << 1234567890;
+```
+
+也可以直接输出到QString
+
+```cpp
+QString str;
+QTextStream(&str) << oct << 31 << dec << 25;
+```
+
+---
+## 存储容器
+
