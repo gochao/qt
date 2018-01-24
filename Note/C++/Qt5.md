@@ -2097,3 +2097,139 @@ QTextStream(&str) << oct << 31 << dec << 25;
 ---
 ## 存储容器
 
+常用的数据结构，类似STL  
+容器类都不继承QObject，提供隐式数据共享，与平台无关  
+
+### 顺序存储容器
+
+#### QList<T>
+
+基于数组实现的列表  
+可以基于索引快速访问，可以使用`QList::append()`和`QList::prepend()`添加元素  
+`QList::insert()`在中间插入
+对于字符串有QStringList，它继承自QList<QString>
+
+#### QLinkedList<T>
+
+基于QList，使用遍历器，不基于索引，在插入时优于QList  
+
+#### QVector<T>
+
+在内存中的**连续区域**存储一系列值
+
+#### QStack<T>
+
+QVector的子类，栈  
+有push() pop() top()函数  
+
+#### QQueue<T>
+
+QList子类，队列  
+有enqueue() dequeue() head()函数
+
+### 关联容器
+
+#### QSet<T>
+
+单值的数学集合，快速查找
+
+#### QMap<Key, T>
+
+字典  
+每个键与一个值关联，QMap以键的顺序存储数据  
+如果顺序无关，则QHash性能更佳  
+
+#### QMultiMap<Key, T>
+
+QMap的子类，提供多值映射，即一个键可以对应多个值  
+
+#### QHash<Key, T>
+
+与QMap接口几乎相同，但是速度更快，以字母顺序存储数据  
+
+使用QMap或QHash，键的类型必须提供额外的辅助函数  
+QMap的键必须提供`operator<()`重载  
+QHash的键必须提供`operator==()`重载和一个名字是`qHash()`的全局函数  
+
+#### QMultiHash<Key, T>
+
+多值散列
+
+### 容器嵌套
+
+所有的容器都可以嵌套  
+`QMap<QString, QList<int> >`  
+注意最后的两个`> >`一定要用空格隔开，不然会理解为输入重定向运算符
+
+### 可赋值数据类型
+
+有默认构造函数 拷贝构造函数 赋值运算符的类型  
+基本上大多数据类型都是可赋值数据类型  
+
+QObject及其子类不是，因此容器存储只能使用指针`QList<QWidget *>`  
+
+
+---
+## 遍历容器
+
+对用容器的常用操作  
+
+### Java风格
+
+方便但是不如STL高效  
+
+
+
+
+### STL风格
+
+兼容Qt与STL通用算法  
+只读访问比读写访问快
+
+容器 | 只读遍历器 | 读写遍历器
+- | - | -
+QList<T> <br> QQueue<T> | QList<T>::const_iterator | QList<T>::iterator
+QLinkedList<T> | QLinkedList<T>::const_iterator | QLinkedList<T>::iterator
+QVector<T> <br> QStack<T> | QVector<T>::const_iterator | QVector<T>::iterator
+QSet<T> | QSet<T>::const_iterator | QSet<T>::iterator
+QMap<Key, T> <br> QMultiMap<Key, T> | QMap<Key, T>::const_iterator | QMap<Key, T>::iterator
+QHash<Key, T> <br> QMultiHash<Key, T> | QHash<Key, T>::const_iterator | QHash<Key, T>::iterator
+
+
+`++`运算符可以移动到下一元素  
+`*``可以获取遍历器指向的元素  
+
+```cpp
+QList<QString> list;
+list << "A" << "B" << "C" << "D";
+
+QList<QString>::iterator i;
+for(i = list.begin(); i != list.end(); ++i)
+{
+    *i = (*i).toLower();
+}
+
+QList<QString>::const_iterator i;
+for(i = list.constBegin(); i != list.constEnd(); ++i)
+{
+    qDebug() << *i;//i是遍历器，*i是这个元素
+}
+```
+
+STL遍历器直接指向**元素本身**  
+`begin()`函数指向第一个元素遍历器  
+`end()`返回**最后一个元素之后的元素**的遍历器，实际上是一个**非法位置**  
+
+
+```cpp
+QMap<int, int> map;
+
+QMap<int, int>::const_iterator i;
+for(i = map.constBegin(); i != map.constEnd(); ++i)
+{
+    qDebug() << i.key() << i.value();
+}
+```
+
+由于有隐式数据共享，一个函数返回集合中元素的值也不会有很大的代价  
+Qt API中有不少以值的形式返回QList或QStringList的函数  
