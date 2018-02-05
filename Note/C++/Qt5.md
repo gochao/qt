@@ -557,6 +557,74 @@ int main(int argc, char *argv[])
 }
 ```
 
+### 布局的父对象问题
+
+测试程序1： 
+
+```
+QWidget * wid = new QWidget(this);
+qDebug() << "wid地址:"<<wid;
+
+QLabel *label = new QLabel("label");
+QVBoxLayout * layout = new QVBoxLayout;
+layout->addWidget(label);
+
+qDebug() << "label 父对象地址1: "<<label->parent();
+qDebug() << "layout 父对象地址1: "<<layout->parent();
+
+wid->setLayout(layout);
+
+qDebug() << "label 父对象地址2: "<<label->parent();
+qDebug() << "layout 父对象地址2: "<<layout->parent();
+```
+
+输出结果：  
+
+```
+wid地址: QWidget(0x1ecb9458)
+label 父对象地址:  QObject(0x0)
+layout 父对象地址:  QObject(0x0)
+label 父对象地址:  QWidget(0x1ecb9458)
+layout 父对象地址:  QWidget(0x1ecb9458)
+```
+
+程序中对于label和layout都没有制定parent，因此它们被new出来后，内存管理就存在疑问  
+但是通过打印结果，可以发现没有parent的布局在`setlayout`后都有了parent
+
+那么对于在new的时候就指定了parent的情况呢？
+
+测试程序2： 
+
+```
+QWidget * wid = new QWidget(this);
+qDebug() << "wid地址:"<<wid;
+
+QLabel *label = new QLabel("label", this);//此时的label和wid都是this的child
+QVBoxLayout * layout = new QVBoxLayout;
+layout->addWidget(label);
+
+qDebug() << "label 父对象地址1: "<<label->parent();
+qDebug() << "layout 父对象地址1: "<<layout->parent();
+
+wid->setLayout(layout);
+
+qDebug() << "label 父对象地址2: "<<label->parent();
+qDebug() << "layout 父对象地址2: "<<layout->parent();
+```
+
+输出结果：
+
+```
+wid地址: QWidget(0x206d9938)
+label 父对象地址1:  MainWindow(0x7afe00)
+layout 父对象地址1:  QObject(0x0)
+label 父对象地址2:  QWidget(0x206d9938)
+layout 父对象地址2:  QWidget(0x206d9938)
+```
+
+原来同级的wid和label，在label被setlayout到wid中时，label的parent变成了wid  
+因此，在设置layout时，可以不必指定parent  
+
 ### 布局管理器
 
 * QHBoxLayout 按照水平方向左到右  
