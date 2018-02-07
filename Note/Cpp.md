@@ -1534,6 +1534,41 @@ bool CustomWidget::event(QEvent *event)
     return QWidget::event(event);
 }
 ```
+---
+## 控件
+
+### QDockWidget
+
+提供一个窗口部件，可以锁在QMainWindow上，也可作为顶级窗口悬浮在桌面上  
+
+#### 外观
+
+包含一个小的工具栏显示窗口标题，浮动按钮和一个关闭按钮  
+还有一个内容显示区域  
+通过setWidget()函数可以设置子窗口部件，自定义的尺寸策略由子窗口实现，QDockWidget会遵守并调整它自己的限制  
+不应该对QDockWidget限制尺寸，它是根据自己的状态而改变的  
+
+#### 特性
+
+可以设置的特性：  
+- 移动  DockWidgetClosable
+- 悬浮  DockWidgetMovable
+- 关闭  DockWidgetFloatable
+- 标题栏显示在侧边  DockWidgetVerticalTitleBar
+
+#### 停靠位置
+
+- LeftDockWidgetArea  
+- RightDockWidgetArea  
+- TopDockWidgetArea  
+- BottomDockWidgetArea  
+- AllDockWidgetArea  
+- NoDockWidgetArea  
+
+#### 成员函数
+
+setTitleBarWidget(QWidget * widget)  
+setWidget(QWidget * widget)
 
 ---
 ## 绘制系统
