@@ -1570,6 +1570,52 @@ bool CustomWidget::event(QEvent *event)
 setTitleBarWidget(QWidget * widget)  
 setWidget(QWidget * widget)
 
+### QTreeWidget
+
+用于显示树状列表
+
+#### 添加数据项 QTreeWidgetItem
+
+必须插入数据项才能被显示出来
+QTreeWidgetItem()有多种构造函数，一般需要指定一个根节点  
+
+```
+QTreeWidget * tree = new QTreeWidget;
+
+QTreeWidgetItem * item1 = new QTreeWidgetItem(tree, QStringList(QString("1")));
+```
+
+#### 删除
+
+可以使用delete对于new出来的item指针删除  
+也可以使用树的takeTopLevelItem()移除某个节点  
+
+树在销毁时，会自动销毁所有子节点，不需要手动一个个delete  
+
+#### 成员函数
+
+- QTreeWidgetItem * currentItem() 返回当前的Item  
+- void addTopLevelItems(QTreeWidgetItem * item) 将项添加到顶级项目中  
+- [slot] void clear() 移除所有的项，但不会delete  
+- [slot] void collapseItem(QTreeWidgetItem * item) 折叠
+- [signal] void currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * previous) 当前项变化时发出信号  
+- QList<QTreeWidgetItem *> findItems(QString &text, Qt::MatchFlags flags, int column = 0) 在指定列用寻找项目  
+  - MatchExactly 精确匹配  
+  - MatchFixedString 不区分大小写的字符串匹配  
+  - MatchContains 包含匹配  
+  - MatchStartsWith 开始匹配  
+  - MatchEndsWith 末尾匹配  
+  - MatchCaseSensitive 区分大小写  
+  - MatchRegExp 正则表达式  
+  - MatchWildcard 通配符  
+  - MatchWrap 循环搜索，从中间向下搜索结束后会调到开头，直到起始位置  
+  - MatchRecursive 递归搜索  
+- [slot] void scrollToItem(QTreeWidgetItem * item, hint = EnsureVisible) 滚动到指定项确保可见  
+- void setCurrentItem() 设置为当前项  
+- void setHeaderItem() 设置标题列项  
+- void setHeaderLabel() 设置标题标签  
+- void setSelectionModel(QItemSelectionModel *) 设置选择模式  
+
 ---
 ## 绘制系统
 
