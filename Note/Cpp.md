@@ -46,6 +46,16 @@ int main(int argc, char *argv[])
 修改后点左侧下方的绿色按钮运行  
 
 
+### 加速编译
+
+- 对于小项目来说，编译速度无关重要，但在大项目中使用以下手段可以加速编译速度  
+
+- Qt可以使用两种手段加速编译过程：多线程编译和预编译  
+- 多线程编译在VS中容易设置但在QtCreator中，使用mingw编译需要在项目中配置make参数为 -j4 数字4是cpu核心数目  
+- 预编译类似MFC中的“stdafx.h”,可以在.pro文件中加入`PRECOMPILED_HEADER = stable.h`, 然后在stable.h中添加所需要的头文件如`#include <QApplication>`，然后在需要头文件的地方`#include stable.h`  
+
+
+
 ---
 ## 信号槽机制  
 
