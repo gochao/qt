@@ -8,6 +8,8 @@
 
 ### [C++](https://github.com/fengbaoheng/qt/blob/master/Note/Cpp.md)  
 
+### [QtQuick](https://github.com/fengbaoheng/qt/blob/master/Note/QtQuick.md)
+
 ### [PyQt](https://github.com/fengbaoheng/qt/blob/master/Note/PyQt.md)
 
 ## 项目
