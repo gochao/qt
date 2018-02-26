@@ -105,3 +105,75 @@ Rectangle{
 
 }
 ```
+
+对于对象的属性若帮助文档查不到信号，可以查看源文件`xxx\mingw\include\QtQuick\xxxx\private\xxx.h`中声明的函数  
+Q_PROPERTY声明的就是属性，属性后面有NOTIFY字样的就是可以与改属性绑定的信号  
+
+### 自定义信号
+
+自定义的类型信号需要自己添加  
+
+下面的例子是通过点击不同的小方块来切换文字的颜色  
+
+```js
+Rectangle{
+    width: 1027;
+    height: 768;
+    color: "#C0C0C0";
+
+    Text {
+        id: coloredText;
+        text: "text";
+        font.pointSize: 100;
+        anchors.centerIn: parent;
+    }
+
+    //可重复使用的组件
+    Component {
+        id: colorComponent;
+        Rectangle{
+            id: colorPicker;
+            width: 100;
+            height: 100;
+            signal colorPicked(color clr);
+            MouseArea {
+                anchors.fill: parent;
+                onPressed: colorPicker.colorPicked(colorPicker.color);
+            }
+        }
+    }
+
+    Loader {
+        id: redLoader;
+        anchors.left: parent.left;
+        sourceComponent: colorComponent;
+        onLoaded: {
+            item.color = "red";
+        }
+    }
+
+    Loader {
+        id: blueLoader;
+        anchors.right: parent.right;
+        sourceComponent: colorComponent;
+        onLoaded: {
+            item.color = "blue";
+        }
+    }
+
+    Connections {
+        target: redLoader.item;
+        onColorPicked: {
+            coloredText.color = clr;
+        }
+    }
+
+    Connections {
+        target: blueLoader.item;
+        onColorPicked: {
+            coloredText.color = clr;
+        }
+    }
+
+}
+```
