@@ -1627,6 +1627,41 @@ QTreeWidgetItem * item1 = new QTreeWidgetItem(tree, QStringList(QString("1")));
 - void setSelectionModel(QItemSelectionModel *) 设置选择模式  
 
 ---
+## 界面外观
+
+### 风格
+
+#### QStyle
+
+QStyle类决定了GUI的外观,执行所有的绘制工作  
+QStyleFactory类可以创建一个QStyle  
+默认可用的风格有"windows" "fusion"  
+
+有些风格只在特定的系统上有效  
+通过QStyleFactory::keys()函数可以获取所有支持的风格  
+通过QStyleFactory::create()函数可以生成指定的风格  
+
+`ui->progressBar->setStyle(QStyleFactory::create("windows"));`  
+
+#### QPalette
+
+调色板包含了部件的各种状态的颜色组  
+状态有:激活 失效 非激活  
+所有的部件都有一个调色板可以通过QApplication::palette()获取,通过setPalette()设置调色板  
+
+### 样式表
+
+样式表类似于CSS  
+使用QApplication::setStyleSheet()函数设置  
+对于不同级别的样式表会叠加,即"层叠"  
+
+```
+ui->pushButton->setStyleSheet("background:blue");
+```
+
+#### 语法
+
+---
 ## 绘制系统
 
 Qt的绘制系统主要包含三个类QPainter QPainterDevice QPaintEngine  
