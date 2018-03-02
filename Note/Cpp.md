@@ -2427,3 +2427,36 @@ for(i = map.constBegin(); i != map.constEnd(); ++i)
 
 由于有隐式数据共享，一个函数返回集合中元素的值也不会有很大的代价  
 Qt API中有不少以值的形式返回QList或QStringList的函数  
+
+
+---
+## QSortFilterProxyModel
+
+- 可以对数据进行排序和过滤,类似于Excel中的过滤器  
+- 过滤功能是基于正则表达式的  
+- 不能单独使用 是一个代理模型,真正的数据需要另外一个模型提供  
+
+```cpp
+class SortView : public QWidget
+{
+    Q_OBJECT
+public:
+    SortView();
+
+private:
+    QListView * view;
+    QStringListModel * model;
+    QSortFilterProxyModel * modelProxy;
+    QComboBox * syntaxBox;
+
+private slots:
+    void filterChanged(const QString &text);
+};
+```
+
+```cpp
+SortView::SortView()
+{
+    model = new QStringListModel()
+}
+```
