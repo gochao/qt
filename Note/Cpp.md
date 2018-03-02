@@ -2457,6 +2457,30 @@ private slots:
 ```cpp
 SortView::SortView()
 {
-    model = new QStringListModel()
+    //模型包含所有预定义颜色的名字
+    model = new QStringListModel(QColor::colorNames(), this);
+
+    modelProxy = new QSortFilterProxyModel(this);
+    modelProxy = setSourceModel(model);//设置代理模型的数据源模型
+    modelProxy = setFilterKeyColumn(0);//仅对第一列过滤
+
+    //设置视图
+    view = new QListView(this);
+    view->setModel(modelProxy);//数据源是代理模型
+
+    QLineEdit * filterInput = new QLineEdit;
+    QLabel * filterLabel = new QLabel("过滤");
+    QHBoxLayout * filterLayout = new QHBoxLayout;
+    filterLayout->addWidget(filterLabel);
+    filterLayout->addWidget(filterInput);
+
+    //用于向用户提供规则选择
+    syntaxBox = new QComboBox;
+    syntaxBox->setSizePolicy(QSizePolicy::Expanding, QSizePolizy::Preferred);
+    syntaxBox->addItem("正则表达式", QRegExp::Wildcard);
+    syntaxBox->addItem("匹配字符串", QRegExp::FixedString);
+    QLabel * syntaxLabel = new QLabel("Syntax");
+
+
 }
 ```
