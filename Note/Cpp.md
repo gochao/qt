@@ -2505,7 +2505,7 @@ QAbstractItemDelegate时所有委托的基类
 
 对于简单的功能,不需要用到model/view架构,还可以使用继承了视图和模型的简单类QListWidget QTreeWidget QTableWidget
 
---
+---
 ## QListWidget QTreeWidget QTableWidget
 
 ### QListWidget
@@ -2514,7 +2514,7 @@ QAbstractItemDelegate时所有委托的基类
 
 ### QTableWidget
 
---
+---
 ## 模型
 
 模型都是QAbstractItemModel类的子类,都提供了一种表格形式的层次结构  
@@ -2569,6 +2569,60 @@ for(int row =0; row < numRows; ++row)
 
 ---
 ## 视图和委托
+
+视图可以展示数据以及在数据项间导航和选择  
+同时视图也支持基本的用户界面操作,如右键菜单和拖放  
+提供数据编辑功能,也可以由委托完成  
+多个视图相互独立也可以进行共享  
+
+某些视图不仅显示数据还会显示列头和表头,是由QHeaderView::headerData()函数从模型中获取的并以标签形式显示出来  
+
+```cpp
+QStringList data;
+data << "0" << "1" << "2";
+model = new QStringListModel(this);
+model->setStringList(data);
+
+listView = new QListView(this);
+listView->setModel(model);
+```
+
+对于视图的编辑数据功能,如果想提供更完善的功能,实现特殊的要求可以使用委托来进行数据编辑  
+
+常用的委托QStyledItemDelegate  
+继承它时,需要实现以下几个函数  
+- createEditor() 返回一个组件,作为数据编辑器,接受模型数据,返回用户修改后的数据  
+- setEditorData() 提供编辑器初始默认的数据  
+- updateEditorGeometry() 编辑器显示  
+- setModelData() 将用户修改过的数据赋值到模型中去  
+
+```cpp
+QWidget *SpinBoxDelegate::createEditor(QWidget *parent,const QStyleOptionViewItem & /* option */,const QModelIndex & /* index */) const
+{
+    QSpinBox *editor = new QSpinBox(parent);//编辑器组件
+    editor->setMinimum(0);
+    editor->setMaximum(100);
+    return editor;
+}
+
+void SpinBoxDelegate::setEditorData(QWidget *editor,
+const QModelIndex &index) const
+{
+    int value = index.model()->data(index, Qt::EditRole).toInt();//获取模型数据
+    QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
+    spinBox->setValue(value);//赋值给编辑器
+}
+
+void SpinBoxDelegate::setModelData(QWidget *editor,
+QAbstractItemModel *model,const QModelIndex &index) const
+{
+    QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
+    spinBox->interpretText();
+    int value = spinBox->value();
+    model->setData(index, value, Qt::EditRole);//编辑器数据写回模型中
+}
+```
+
 
 
 ---
