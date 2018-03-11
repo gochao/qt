@@ -2680,3 +2680,91 @@ SortView::SortView()
 
 }
 ```
+
+
+---
+## 剪贴板
+
+剪贴板通常和拖放技术一起使用  
+可以理解为它是一个有操作系统维护的数据存储池  
+提供了跨应用程序的数据交互  
+
+Demo:从TextEdit中复制到剪贴板 并能读取剪贴板内容  
+
+```cpp
+#include <QWidget>
+#include <QTextEdit>
+
+class ClipboardDemo : public QWidget
+{
+    Q_OBJECT
+public:
+    explicit ClipboardDemo(QWidget *parent = nullptr);
+
+private slots:
+    void setContent();//设置内容
+    void getContent();//获取内容
+
+private:
+    QTextEdit * editor;
+};
+```
+
+```cpp
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QPushButton>
+#include <QLabel>
+#include <QApplication>
+#include <QClipboard>
+#include <QMessageBox>
+
+ClipboardDemo::ClipboardDemo(QWidget *parent) : QWidget(parent)
+{
+    editor = new QTextEdit(this);
+
+    QLabel * label = new QLabel;
+    label->setText("Text Input: ");
+
+    QPushButton * copyButton = new QPushButton("set Clipboard");
+    QPushButton * pasteButton = new QPushButton("get Clipboard");
+
+    QHBoxLayout * editorLayout = new QHBoxLayout;
+    editorLayout->addWidget(label);
+    editorLayout->addWidget(editor);
+
+    QHBoxLayout * btnLayout = new QHBoxLayout;
+    btnLayout->addWidget(copyButton);
+    btnLayout->addWidget(pasteButton);
+
+    QVBoxLayout * mainLayout = new QVBoxLayout;
+    mainLayout->addLayout(editorLayout);
+    mainLayout->addLayout(btnLayout);
+    setLayout(mainLayout);
+
+    connect(copyButton, &QPushButton::clicked, this, &ClipboardDemo::setContent);
+    connect(pasteButton, &QPushButton::clicked, this, &ClipboardDemo::getContent);
+}
+
+void ClipboardDemo::getContent()
+{
+    QClipboard * board = QApplication::clipboard();
+    QString str = board->text();
+    QMessageBox::information(0, "来自剪贴板", str);
+}
+
+void ClipboardDemo::setContent()
+{
+    QString str = editor->toPlainText();
+    QClipboard * board = QApplication::clipboard();
+    board->setText(str);
+}
+```
+
+
+使用剪贴板的内容主要集中在槽函数中  
+QApplication::clipboard()可以获得系统剪贴板对象指针  
+可以通过setText setImage setPixmap函数将对应数据放入到剪贴板中  
+相应地可以使用text image pixmap等函数读取剪贴板数据  
+
+如果想要支持更多的数据可以继承QMimeData类，调用setMimeData函数自定义数据进入剪贴板
