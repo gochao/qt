@@ -55,6 +55,27 @@ int main(int argc, char *argv[])
 - 预编译类似MFC中的“stdafx.h”,可以在.pro文件中加入`PRECOMPILED_HEADER = stable.h`, 然后在stable.h中添加所需要的头文件如`#include <QApplication>`，然后在需要头文件的地方`#include stable.h`  
 
 
+### 打包指南  
+
+Qt自身提供的工具Windeployqt寻找动态依赖库，这样做会使发布文件夹变大许多  
+通过文章可知，有一些依赖库是可以删除的  
+
+转载参考文章： [谈谈 Qt 程序安装包的大小，以及简要打包指南](http://hgoldfish.com/blogs/article/103/)  
+
+> 1. libEGL.dll, libGLESV2.dll 这两个文件是 ANGLE 的文件，可以去掉。opengl32sw.dll是软件模拟 OpenGL，除非用户的系统连 DirectX 支持都不完整——虚拟机环境就是这样——不然这个文件也完全没有用。 QtWidgets/C++ 程序都不用 Windeployqt.exe时加--no-angle 和 --no-opengl-sw 这两个参数。
+> 1. 如果没有使用 svg 的话，iconengines\qsvgicon.dll, imageformats\qsvg.dll, Qt5Svg.dll 这三个文件也可以删掉
+> 1. 如果没有国际化用户的话，translations 里面的翻译文件也可以删掉。
+> 1. QML 程序没有使用 QtWidgets/C++ 可以删掉 Qt5Widgets.dll
+> 1. 如果 imageformats 目录里面有几种图像格式没用上，也可以删掉。我自己通常把整个目录都删掉，Qt已经编译了 png 的支持，能读写程序包含的图标就够，其它格式不重要。
+> 1. qmltooling 和Qt5Network.dll 是用于 QML 调试用的，可以删掉。
+
+
+#### 打包命令
+
+```
+Windeployqt --no-angle --no-opengl-sw --release painter.exe
+```
+
 
 ---
 ## 信号槽机制  
@@ -2681,7 +2702,6 @@ SortView::SortView()
 }
 ```
 
-
 ---
 ## 剪贴板
 
@@ -2768,3 +2788,150 @@ QApplication::clipboard()可以获得系统剪贴板对象指针
 相应地可以使用text image pixmap等函数读取剪贴板数据  
 
 如果想要支持更多的数据可以继承QMimeData类，调用setMimeData函数自定义数据进入剪贴板
+
+
+## QJson
+
+### 保存与读取
+
+QFile的读取与保存是通过QJsonDocument接口连接
+QJsonDocument可以将一个QJsonObject利用toJson()函数转化为一个QByteArray后存入QFile  
+同样,从QFile读取的流QBtyeArray通过QJsonDocument::fromJson(QByteArray())转化为QJsonDocument  
+
+```cpp
+//保存
+QFile fileSave("save.json");
+fileSave.open(QIODevice::WriteOnly);
+QJsonDocument jsonDoc();
+fileSave.write(jsonDoc.toJson());
+fileSave.close();
+
+//读取
+QFile fileLoad("save.json");
+fileLoad.open(QIODevice::ReadOnly);
+QByteArray data = fileLoad.readAll();
+QJsonDocument loadDoc(QJsonDocument::fromJson(data));
+```
+
+### 构建与解析
+
+```cpp
+/*json对象
+{
+    "Company": "Digia",
+    "From": 1991,
+    "Name": "Qt",
+    "Page": {
+        "Developers": "https://www.qt.io/developers/",
+        "Download": "https://www.qt.io/download/",
+        "Home": "https://www.qt.io/"
+    },
+    "Version": [
+        4.8,
+        5.2,
+        5.7
+    ]
+}
+*/
+
+//构建
+// 构建 Json 数组 - Version
+QJsonArray versionArray;
+versionArray.append(4.8);
+versionArray.append(5.2);
+versionArray.append(5.7);
+
+// 构建 Json 对象 - Page
+QJsonObject pageObject;
+pageObject.insert("Home", "https://www.qt.io/");
+pageObject.insert("Download", "https://www.qt.io/download/");
+pageObject.insert("Developers", "https://www.qt.io/developers/");
+
+// 构建 Json 对象
+QJsonObject json;
+json.insert("Name", "Qt");
+json.insert("Company", "Digia");
+json.insert("From", 1991);
+json.insert("Version", QJsonValue(versionArray));
+json.insert("Page", QJsonValue(pageObject));
+
+// 构建 Json 文档
+QJsonDocument document;
+document.setObject(json);
+QByteArray byteArray = document.toJson(QJsonDocument::Compact);
+QString strJson(byteArray);
+
+qDebug() << strJson;
+
+
+//解析
+QJsonParseError jsonError;
+QJsonDocument doucment = QJsonDocument::fromJson(byteArray, &jsonError);  // 转化为 JSON 文档
+if (!doucment.isNull() && (jsonError.error == QJsonParseError::NoError)) {  // 解析未发生错误
+    if (doucment.isObject()) {  // JSON 文档为对象
+        QJsonObject object = doucment.object();  // 转化为对象
+        if (object.contains("Name")) {
+            QJsonValue value = object.value("Name");
+            if (value.isString()) {
+                QString strName = value.toString();
+                qDebug() << "Name : " << strName;
+            }
+        }
+        if (object.contains("Company")) {
+            QJsonValue value = object.value("Company");
+            if (value.isString()) {
+                QString strCompany = value.toString();
+                qDebug() << "Company : " << strCompany;
+            }
+        }
+        if (object.contains("From")) {
+            QJsonValue value = object.value("From");
+            if (value.isDouble()) {
+                int nFrom = value.toVariant().toInt();
+                qDebug() << "From : " << nFrom;
+            }
+        }
+        if (object.contains("Version")) {
+            QJsonValue value = object.value("Version");
+            if (value.isArray()) {  // Version 的 value 是数组
+                QJsonArray array = value.toArray();
+                int nSize = array.size();
+                for (int i = 0; i < nSize; ++i) {
+                    QJsonValue value = array.at(i);
+                    if (value.isDouble()) {
+                        double dVersion = value.toDouble();
+                        qDebug() << "Version : " << dVersion;
+                    }
+                }
+            }
+        }
+        if (object.contains("Page")) {
+            QJsonValue value = object.value("Page");
+            if (value.isObject()) {  // Page 的 value 是对象
+                QJsonObject obj = value.toObject();
+                if (obj.contains("Home")) {
+                    QJsonValue value = obj.value("Home");
+                    if (value.isString()) {
+                        QString strHome = value.toString();
+                        qDebug() << "Home : " << strHome;
+                    }
+                }
+                if (obj.contains("Download")) {
+                    QJsonValue value = obj.value("Download");
+                    if (value.isString()) {
+                        QString strDownload = value.toString();
+                        qDebug() << "Download : " << strDownload;
+                    }
+                }
+                if (obj.contains("Developers")) {
+                    QJsonValue value = obj.value("Developers");
+                    if (value.isString()) {
+                        QString strDevelopers = value.toString();
+                        qDebug() << "Developers : " << strDevelopers;
+                    }
+                }
+            }
+        }
+    }
+}
+```
