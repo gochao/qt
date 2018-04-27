@@ -5,6 +5,333 @@
 ## 目录
 [TOC]
 
+## QML基础
+
+QML实现并扩展了ECMAScript  
+Qt Quick是开发QML的标准库  
+
+### 对象
+
+QML文件名为.qml的文本文件  
+
+```
+import QtQuick 2.2
+
+Rectangle {
+    width:320;
+    height:480;
+
+    Image{
+        source:"img/1.jpg";
+        anchors.centerIn:parent;
+    }
+}
+```
+
+### 表达式
+
+```
+Rectangle{
+    width:23*10;
+    height:6*80;
+    color:"#121212"
+}
+
+Button {
+    text:"Quit";
+    style: ButtonStyle {
+        background: Rectangle {
+            border.width: control.activeFocus ? 2:1;
+        }
+    }
+}
+```
+
+以上将border.width和控件属性联系起来  
+
+引用另一个对象还可以使用id值
+
+```
+Button {
+    id: openFile;
+}
+
+Button {
+    id: quit;
+    anchors.left = openFile.right;
+}
+```
+
+### 属性
+
+小写开头,驼峰命名 implicitWidth
+
+有以下几种类型:  
+- 基本类型,由QML提供  
+- Qt Quick提供  
+- C++
+
+int real double string list font等  
+属性有类型检测,要使用匹配的类型  
+
+id属性是唯一的,一个qml文件中不重复  
+
+list属性[],元素由","隔开,只能包含QML对象,不能包含字面量如 8, true等  
+
+## main.cpp分析
+
+```
+QGuiApplication app(argc, argv);
+
+QQmlApplicationEngine engine;//QML引擎
+engine.load(QUrl(QStringLiteral("qrc:///main.qml")));//引擎启动主qml
+
+return app.exec();
+```
+
+## 基本元素
+
+### Rectangle
+
+可以代替window作为根对象  
+width height指定宽和高  
+color:填充颜色,设置为transparent则不填充  
+gradient:渐变色填充  
+
+### 颜色
+
+参考 QMLBasic Type:color
+可以使用名字指定颜色:blue red  
+使用"#RRGGBB" 或 "#AARRGGBB"
+使用Qt.rgba() Qt.lighter()等指定颜色  
+#### 渐变
+
+Gradient指定
+
+```js
+Rectangle {
+    width: 100;
+    height: 100;
+    gradient: Gradient {
+        GradientStop {position:0.0; color:"#202020";}
+        GradientStop {position:0.33; color: "blue"}
+        GradientStop {position:1.0; color:"#FFFFFF";}
+    }
+}
+```
+
+### Item
+
+所有可视元素的基类,定义了绘图大部分通用的属性,如x,y,width,height,anchoring,key,z(叠加顺序), opacity(透明度)
+
+clip属性根据自己的位置和大小来裁剪它自己以及孩子的显示范围,为true则child不能超出parent  
+其他属性还有:  
+scale smooth anchors antialiasing enabled visible state states children transitions等  
+详细信息可查看Item帮助  
+
+### 锚布局
+
+item的7条线:  
+left horizontaCenter top bottom right verticalCenter baseline  
+
+其中baseline是文字的低端线,非文字与top一致
+
+对齐时还可以指定间隔:topMargin...
+
+```js
+import QtQuick 2.2
+
+Rectangle {
+    width: 300;
+    height: 200;
+
+    Rectangle {
+        id: rect1;
+        anchors.left: parent.left;
+        anchors.leftMargin: 20;
+        anchors.top: parent.top;
+        anchors.topMargin: 20;
+    }
+
+    Rectangle {
+        anchors.fill: parent;//全部填充到父组件
+
+        Rectangle {
+            anchors.centerIn: parent;
+        }
+    }
+}
+```
+
+### 响应按键
+
+所有Item都可以自己响应按键  
+通过附加属性Keys来处理按键的信号  
+还有个类型为KeyEvent,名字是event的参数,包含按键的详细信息,一个按键被处理,event.accepted设置为true防止继续传递  
+```js
+Rectangle {
+    width: 300;
+    height: 200;
+    focus: true;
+    Keys.enabled = true;
+    Keys.onEscapePressed: Qt.quit();
+    Keys.onBackPressed: Qt.quit();
+    Keys.onPressed: {
+        switch(event.key){
+        case Qt.Key_0:
+        case Qt.Key_1:
+        case Qt.Key_2:
+        case Qt.Key_3:
+        case Qt.Key_4:
+        case Qt.Key_5:
+        case Qt.Key_6:
+        case Qt.Key_7:
+        case Qt.Key_8:
+        case Qt.Key_9:
+            event.accepted = true;
+            keyView.text = event.key - Qt.Key_0;
+            break;
+        }
+    }
+
+    Text {
+        id: keyView;
+        anchors.centerIn: parent;
+    }
+}
+```
+
+### Text
+
+显示纯文本或者富文本  
+属性: font text color elide textFormat wrapMode horizontalAlignment vericalAlignment  
+
+textFormat默认使用Text.AutoText检测文本类型是纯文本还是富文本
+
+```js
+Rectangle {
+    width: 320;
+    height: 200;
+    Text {
+        wrapMode: Text.WordWrap;
+        font.bold: true;
+        font.pixelSize: 24;
+        text: "Hello text";
+    }
+}
+```
+
+### Button
+
+属性:  
+- text 文字  
+- checkable 可选,checked保存状态  
+- iconName 图标名字,如果有对应的资源就优先使用
+- iconSource URL方式指定icon位置  
+- isDefault 是否为默认按钮  
+- pressed 保存按钮按下状态  
+- menu 按钮设置菜单  
+- action 
+- activeFocusOnPress  
+- style 按钮风格ButtonSytle  
+
+#### ButtonStyle
+
+需要使用 QtQuick.Controls.Sytles 1.x  
+有background control label三个属性  
+
+- background Component类型,绘制Button背景  
+- label Component类型,定制文本  
+- control属性指向使用ButtonStyle的按钮对象  
+
+```js
+import QtQuick 2.2
+import QtQuick.Controls 1.2
+import QtQuick.Controls.Sytles 1.2
+
+Button {
+    style: ButtonStyle {
+        background: Rectangle {
+            implicitWidth: 70;
+            implicitHeight: 25;
+            border.width: control.pressed ? 2 : 1;
+            border.color: control.hovered ? "green" : "#888888";
+        }
+    }
+}
+```
+
+### Image
+
+显示Qt支持的静态图片  
+width height 设置图元的大小,否则使用图片本身的尺寸  
+fillMode设置填充模式:  
+- 拉伸(Image.Stretch) 
+- 等比缩放(Image.PreserveAspectFit)  
+- 等比缩放,最大化填充Image必要时裁剪图片(Image.PreserveAspectCrop)  
+- 平铺 (ImageTile)
+
+默认阻塞加载图片,asynchronous属性开启异步加载模式  
+也可以从网络加载图片,此时会自动使用异步加载,加载完毕后status会更新Image.Ready  
+
+### BusyIndicator
+
+显示一个等待图元
+
+```js
+BusyIndicator {
+    id: busy;
+    running: true;
+    anchors.centerIn: parent;
+    z: 2;
+}
+```
+
+### FileDialog 
+
+visible属性默认为false,使用open()设置为true  
+selectExisting 选择已有的,false可以提供用户创建文件或文件夹  
+selectFolder 选择文件还是文件夹  
+selectMultiple 默认单选
+nameFilters 设定一个过滤器列表 selectedNameFilter保存用户选择的过滤器  
+modality 默认Qt.WindowModal
+
+fileUrl保存文件路径,多个文件则由fileUrls返回列表  
+
+```js
+FileDialog {
+    id: fileDialog;
+    nameFilters: ["Image(*.jpg)", "Bitmap(*.bmp)"];
+    selectedNameFilter: "Image(*.jpg)";
+    selectMultiple: true;
+    onAccepted: {
+        imageViewr.source = fileDialog.fileUrls[0];
+        var imageFile = new String(filDialog.fileUrls[0]);
+    }
+}
+```
+
+## ECMAScript
+
+JavaScript的实现包含三个不同的部分:  
+- 核心(ECMAScript)  
+- 文档对象模型(DOM)  
+- 浏览器对象模型 (BOM)  
+
+ECMAScript为不同的宿主环境提供脚本编程能力  
+浏览器只是一个宿主环境,QML也是其中之一  
+其他语言可以实现ECMAScript来作为功能基础,又可以被扩展,包含宿主环境的新特性  
+
+### 语法基础
+
+变量区分大小写  
+若类型,使用var  
+分号可有可无  
+注释与c一致  
+代码块为花括号  
+
+
+
 ## 信号槽
 
 ### 连接QML类型的已知信号
