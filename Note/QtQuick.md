@@ -330,6 +330,341 @@ ECMAScript为不同的宿主环境提供脚本编程能力
 注释与c一致  
 代码块为花括号  
 
+### 原始类型
+
+Undefined Null Boolean Number String为字面量,可以通过typeof来判断一个值的类型,如果为原始类型返回类型名字,若是引用类型,则返回"object"  
+
+#### Undefined
+
+声明变量未初始化时的默认值  
+
+#### Null
+
+引用变量初始值  
+
+#### Number
+
+32位整数或者64位浮点数  
+数字介于Number.MAX_VALUE最小值是Number.MIN_VALUE 定义外边界  
+
+当数字大于边界时变为Number.POSITIVE_INFINITY
+(正无穷大)和Number.NEGATIVE_INFINITY(负无穷大)
+
+使用isFinit()判断一个数是否有穷  
+非数是NaN 判断非数使用isNan()方法  
+
+#### String
+
+使用双引号或单引号表示  
+同样包含转义字符  
+
+### 类型转换
+
+Boolean Number String有toString()方法转换为字符串  
+
+parseInt()和parseFloat()可以把非数字转换成数字,且只能用于String类型的转换,其他类型转换变为NaN
+
+#### 强制类型转换  
+
+- Boolean(value):非空字符串 非0数字或对象  
+- Number(value):自动调用parse函数  
+- String(value)  
+
+### 对象
+
+#### Object
+
+所有类的基类  
+属性:  
+- constructor:指向创建对象的函数  
+- prototype: 对象原型的引用  
+方法:  
+- hasOwnProperty(property):判断对象是否含有某个属性  
+- isPrototypeOf(object): 判断该对象是否为另一个对象的原型  
+- propertyIsEnumerable(property)判断给定的属性是否可以枚举  
+- toString()  
+- valueOf()适合该对象的原始值  
+
+
+#### 动态增加属性  
+
+```js
+var person = new Object(0;);
+person.name = "zz";
+person.year = 20;//添加Object中没有的属性  
+```
+
+#### 动态添加方法  
+
+```js
+person.printInfo = function printInfo() {
+    console.log("info");
+}
+
+person.printInfo();
+```
+
+#### 下标访问  
+
+```js
+console.log(person["name"]);
+person["printInfo"]();
+```
+
+#### for...in枚举属性
+
+```js
+for (var prop in person) {
+    console.log(prop. ",", person[prop]);
+}
+```
+
+#### 对象的字面量表示法
+
+```js
+var person = {
+    "name": "zz";
+    "year": 20;
+}
+```
+
+得到新的对象,JSON的核心语法  
+
+### String
+
+```js
+var str = new String("I am a string");
+console.log(str.length);//长度  
+
+console.log(str[0]);
+console.log(str.charAt(2));//访问单个字符  
+
+console.log(str.indexOf("am"))//查找子串,失败返回-1
+
+str.search();
+str.match();//返回存放所有子串的数组
+
+//字符串连接
+str1 + str2;
+str1.concat("newS");
+
+//提取子串
+var str = new String("I like QML");
+str.slice(-3);//QML
+str.slice(2, 6);//like
+
+//大小写转换
+toLowerCase();
+toLocaleLowerCase();
+toUpperCase();
+toLocaleUpperCase();
+
+//QML扩充
+var exp = "%1 < %2 = %3";
+exp.arg(7).arg(8).arg("true");
+```
+
+### 正则表达式
+
+### Array
+
+大小可以动态变化,元素类型可以不同  
+
+```js
+var a = new Array();
+var a = new Array(10);
+var a = new Array(10, 6, 3);
+
+a.push(20);
+a.unshift(1);
+a.pop();
+a.sort();
+join();//合并为一个字符串
+```
+
+#### Math
+
+全局对象,不需要new构造
+
+```js
+var pi = Math.PI;
+```
+
+#### Date
+
+```js
+var today = new Date();
+getDate();//1-31
+getDay();//0-6
+getMonth();//0-11
+getFullYear();//xxxx
+getTime();//时间戳
+```
+
+
+### 函数
+
+#### 语法
+
+```js
+function quit {
+    Qt.quit();
+}
+
+function showError(msg) {
+    console.log(msg);
+}
+```
+
+函数默认都有返回值,没有return则返回undefined
+
+
+## 事件处理
+
+### 键盘
+
+Keys对象处理按键事件  
+有针对特定按键的信号,returnPressed,也有普通的pressed和released信号  
+
+KeyEvent代表一个按键事件,event.accepted应该被设置为true,以免继续传递  
+
+forwardTo对应一个列表类型,一次传递按键事件给列表内的对象,如果某个对象接受了,就不会继续传递下去  
+
+priority属性设置优先级,在Item默认处理方法之前处理按键和在Item之后处理按键.区别是可以自己处理后accept  
+
+想让某个元素处理按键,就要传递焦点focus  
+
+实例:可移动文本  
+
+```js
+import QtQuick 2.9
+import QtQuick.Controls 2.2
+import QtQuick.Window 2.3
+
+Window {
+    visibility: "Maximized"
+    visible: true;
+
+    Rectangle {
+        anchors.fill: parent;
+        color: "gray";
+
+        focus: true;
+        Keys.enabled: true;
+        Keys.onEscapePressed: {
+            Qt.quit();
+        }
+        Keys.forwardTo: [moveText, likeQt];
+
+        Text {
+            id: moveText;
+            x: 20;
+            y: 20;
+            width: 200;
+            height: 30;
+            text: "Moving Text";
+            color: "blue";
+            font: {bold:true; pixelSize: 100;}
+            Keys.enabled: true;
+            Keys.onPressed: {
+                switch(event.key){
+                case Qt.Key_Left:
+                    x -= 10;
+                    break;
+                case Qt.Key_Right:
+                    x += 10;
+                    break;
+                case Qt.Key_Up:
+                    y -= 10;
+                    break;
+                case Qt.Key_Down:
+                    y += 10;
+                    break;
+                default:
+                    return;
+                }
+                event.accepted = true;
+            }
+        }
+
+        CheckBox {
+            id: likeQt;
+            text: "Like Qt Quick";
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            z: 1;
+        }
+    }
+}
+
+```
+
+### 定时器
+
+Timer代表定时器  响应triggered()信号使用  
+interval指定定时周期 默认1000毫秒  
+repeat设定周期触发  
+running 设置可用  
+triggeredOnStart开始时立即触发一次默认false  
+
+方法有 start() stop() restart()  
+
+倒计时实例:  
+
+```js
+import QtQuick 2.9
+import QtQuick.Controls 2.2
+import QtQuick.Window 2.3
+
+Window {
+    visibility: "Maximized"
+    visible: true;
+
+    Text {
+        id: txt;
+        anchors.centerIn: parent;
+        font.family: "微软雅黑";
+        font.pixelSize: 200;
+        property int sec: 10;
+    }
+
+    Button {
+        id: btn;
+        text: "Start";
+        anchors.horizontalCenter: txt.horizontalCenter;
+        anchors.top: txt.bottom;
+        anchors.topMargin: 50;
+
+        onClicked: {
+            txt.sec = 10;
+            timer.restart();
+        }
+    }
+
+    Timer {
+        id: timer;
+        interval: 1000;
+        repeat: true;
+
+        onTriggered: {
+            if (txt.sec > 1)
+            {
+                txt.sec -= 1;
+                txt.text = txt.sec.toString();
+            }
+            else
+            {
+                txt.text = "Clap Now!";
+                timer.stop();
+            }
+        }
+    }
+}
+
+```
+
+
+## 组件与动态对象
 
 
 ## 信号槽
