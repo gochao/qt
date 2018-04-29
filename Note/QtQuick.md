@@ -666,6 +666,240 @@ Window {
 
 ## 组件与动态对象
 
+### 组件 Component
+
+封装好的组件,对外暴露必要的QML接口,可以重复利用  
+通过属性 信号和函数对外交互  
+
+可以嵌入文档,也可以放在单独的文件中  
+
+
+#### 嵌入定义组件
+
+```js
+Component {
+    id: colorComponent;
+
+    Rectangle {
+        id: colorPicker;
+        width: 50;
+        height: 30;
+        signal colorPicked(color clr);
+        MouseArea {
+            anchors.fill: parent;
+            onPressed: colorPicker.colorPicked(colorPicker.color); 
+        }   
+    }
+}
+```
+
+Component组件中只能包含一个顶层Item,初次之外只能定义id  
+
+通常用Component组件给view提供图形化组件,ListView::delegate属性需要Component来指定如何显示列表中的项  
+
+它本身不可见,不是Item的派生类,仅通过顶层Item提供可视化组件,它在需要被显示时通过Loader来实例化  
+
+#### 单独文件中定义组件
+
+BusyIndicator.qml文件中定义的组件  
+```js
+Control {
+    id: indicator;
+    property bool running: true;
+    Accessible.role: Accessible.Indicator;
+    Accessible.name: "busy";
+}
+```
+
+单独文档定义的组件,最外层不需要Component  
+这里的顶层Item是Control,它是其他控件的基类  
+定义组件时,qml文件名要命名为组件名,且首字母大写  
+
+
+```js
+//ColorPicker.qml
+import QtQuick 2.9
+
+Rectangle {
+    id: picker
+    width: 50
+    height: 50
+    signal colorPicked(color clr)
+
+    //获得焦点变化
+    function configiureBorder() {
+        border.width = focus ? 2 : 0;
+        border.color = focus ? "#90D750" : "#808080";
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            picker.colorPicked(picker.color);
+            picker.focus = true;
+        }
+    }
+
+    //回车处理
+    Keys.onReturnPressed: {
+        colorPicked(color)
+        event.accepted = true
+    }
+
+    Keys.onSpacePressed: {
+        colorPicked(color)
+        event.accepted = true
+    }
+
+    onFocusChanged: {
+        configiureBorder()
+    }
+
+    Component.onCompleted: {
+        configiureBorder()
+    }
+}
+
+
+//main.qml
+import QtQuick 2.9
+import QtQuick.Controls 2.2
+import QtQuick.Window 2.3
+
+Window {
+    visible: true;
+    width: 200;
+    height: 200;
+
+    Text{
+        id: txt;
+        color: "black";
+        font.pixelSize: 100;
+        text: "Color Text";
+        anchors.centerIn: parent;
+    }
+
+    function setTextColor(clr){
+        txt.color = clr;
+    }
+
+    ColorPicker {
+        id: redPicker;
+        anchors.margins: 10;
+        anchors.left: parent.left;
+        anchors.bottom: parent.bottom;
+        color: "red";
+        KeyNavigation.tab: bluePicker;
+        KeyNavigation.right: bluePicker;
+        onColorPicked: {
+            //内部绑定信号
+            txt.color = clr;
+        }
+    }
+
+    ColorPicker {
+        id: bluePicker;
+        anchors.margins: 10;
+        anchors.left: redPicker.right;
+        anchors.bottom: parent.bottom;
+        color: "blue";
+        KeyNavigation.left: redPicker;
+        KeyNavigation.right: greenPicker;
+        KeyNavigation.tab: greenPicker;
+    }
+
+    ColorPicker {
+        id: greenPicker;
+        anchors.margins: 10;
+        anchors.left: bluePicker.right;
+        anchors.bottom: parent.bottom;
+        color: "green";
+        KeyNavigation.left: bluePicker;
+        KeyNavigation.tab: redPicker;
+    }
+
+    //绑定信号
+    Component.onCompleted: {
+        bluePicker.colorPicked.connect(setTextColor);
+        greenPicker.colorPicked.connect(setTextColor);
+        redPicker.focus = true;
+    }
+}
+
+```
+
+### Loader
+
+可以加载组件,动态加载显示  
+
+source指定加载QML文档或sourceComponent加载Component对象,当设置新值后,旧对象被销毁.设置为undefined则变为空对象  
+
+item属性指向加载对象的顶层Item,可以通过item属性访问加载对象的属性  
+
+```js
+Loader {
+    id: redLoader;
+    sourceComponent: colorComponent;
+    onLoaded: {
+        item.color = "red";
+    }
+
+    Connections {
+        target: redLoader.item;
+        onColorPicked: {
+            colorPicked: {
+                coloredText.color = clr;
+            }
+        }
+    }
+}
+
+
+Loader {
+    id: blueLoader;
+    source: "ColorPicker.qml";
+}
+```
+
+Loader是Item的派生类,但是没有加载时不可见,加载后大小与Item一致,也可自己调整  
+
+
+注意: Loader对与焦点focus也是敏感的,因此,其内部的Item处理按键后,要设置accepted属性为true,避免将事件再传递给Loader  
+
+
+
+#### Loader动态创建与销毁
+
+通过设置source值来加载或销毁  
+
+```js
+Rectangle {
+    id: rootItem;
+    property var colorPickerShowFlag: false;
+}
+Button {
+    onClicked: {
+        if(rootItem.colorPickerShowFlag) {
+            redLoader.source = "";
+            blueLoader.sourceComponent = undefined;
+        } else {
+            redLoader.source = "ColorPicker.qml";
+            blueLoader.source = "ColorPicker.qml";
+        }
+    }
+}
+```
+
+### 动态创建对象
+
+- Qt.createComponent()先动态创建一个组件,使用该Component()的createObject()方法创建对象.适合已经定义好的组件  
+
+- Qt.createQmlObject()从一个QML字符串直接创建对象,适合运行时产生的对象  
+
+#### 从文件动态创建Component
+
+
+
 
 ## 信号槽
 
