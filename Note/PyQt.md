@@ -1,14 +1,18 @@
 # PyQt 学习笔记
 
-资料来源:[zetcode](http://zetcode.com/gui/pyqt5/)
+## 资料来源
 
+- [zetcode](http://zetcode.com/gui/pyqt5/)
+- [PyQt5图形界面编程](https://zhuanlan.zhihu.com/xdbcb8)
+
+## 目录
 [TOC]
 
-## PyQt5介绍  
-
-这是PyQt5教程的介绍,目的是让你开始使用PyQt5工具箱.教程已经在linux上完成并测试.
+## 介绍
 
 ### 关于PyQt5
+
+不向下兼容PyQt4,一些模块被废弃,不支持旧的信号槽  
 
 PyQt5是一系列Qt5绑定在Python上的应用框架,它可以在2.x和3.x上使用  
 
@@ -60,14 +64,7 @@ Enginio模块:
 
 ---
 
-## 简单的例子  
-显示一个小窗口,之后可以实现更多功能.  
-重新设置大小需要很多代码,一些人已经写好了函数,因为他们在很多应用中重复  
-因此不需要在写了  
-PyQt5是一个高级的工具箱,如果我们写了低级的代码,接下来的这个例子就会轻松上百行  
-
-### 代码示例
-
+## 简单的例子 
 ```py
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, \
@@ -201,27 +198,15 @@ class Example4(QWidget):
             QCloseEvent.accept()
         else:
             QCloseEvent.ignore()
-
-
-# 将窗口移动到屏幕中心
-class Example5(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self)
 ```
 
 ---
 ## 菜单栏工具栏
 
-这部分教程中,我们将制造一个菜单和工具栏  
-菜单是在菜单栏的一组命令  
-工具栏是应用中的一些常见按钮  
+### 主窗口
 
-### 主窗口  
 QMainWindow类提供了一个主应用窗口类,是一个具有状态栏,工具栏,菜单栏的框架  
-之前我们用的主窗口都是QWidget类  
+之前的主窗口都是QWidget类  
 
 ### 状态栏  
 
@@ -312,13 +297,13 @@ class Example3(QMainWindow):
 ---
 ## 布局管理
 
-GUI程序的布局管理是一个很重要的方面  
-布局管理是我们如何在应用上放置组件  
+布局管理是在应用上放置组件  
 布局管理有两种基本的方式,绝对位置或布局类  
 
 ### 绝对位置
+
 程序员确定每个组件的尺寸和位置,当你使用绝对布局时,考虑以下限制:  
-- 改变窗口大小时,组件的位置不会变
+- 改变窗口大小时,组件的位置不会变  
 - 改变应用字体时,可能会损坏布局  
 - 应用在不同平台看起来会不一样  
 - 如果我们决定更改布局,那么我们就必须全部调整,非常耗时  
@@ -450,3 +435,58 @@ class Example4(QWidget):
         self.setGeometry(300, 300, 400, 400)
         self.show()
 ```
+
+
+---
+## 信号槽
+
+```py
+from PyQt5.QtWidgets import (QApplication, QWidget, QMessageBox)
+from PyQt5.QtCore import pyqtSignal, Qt
+import sys
+
+class SignalDemo(QWidget):
+    demoSignal1 = pyqtSignal()
+    demoSignal2 = pyqtSignal()
+    demoSignal3 = pyqtSignal(int, int)
+    
+    def __init__(self):
+        super().__init__()
+        
+        self.setMouseTracking(True)
+        self.setGeometry(200, 200, 300, 300)
+        self.setWindowTitle('SignalDemo')
+        self.show()
+        
+        self.demoSignal1.connect(self.about)
+        self.demoSignal2.connect(self.warning)
+        self.demoSignal3.connect(self.displayPos)
+        
+    def about(self):
+        QMessageBox.about(self, '鼠标信号','左键点击')
+        
+    def warning(self):
+        QMessageBox.warning(self, "鼠标信号", "右键点击")
+
+    def displayPos(self, x, y):
+        print("X:{0}, Y:{1}".format(x, y))
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.demoSignal1.emit()
+        elif e.button() == Qt.RightButton:
+            self.demoSignal2.emit()
+            
+    def mouseMoveEvent(self, e):
+        self.demoSignal3.emit(e.x(), e.y())
+    
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    demo = SignalDemo()
+    sys.exit(app.exec_())
+```
+
+
+
+
